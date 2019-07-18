@@ -1,0 +1,12 @@
+name: "&8Example Crate"
+item: chest
+sound: entity_player_levelup
+loot:
+- amount: 1
+  items:
+  - stone
+  - sand
+- amount: 4
+  items:
+  - 64 dirt
+  - 64 gravel
