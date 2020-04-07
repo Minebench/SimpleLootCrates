@@ -18,15 +18,13 @@ package de.minebench.simplelootcrates;
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
-import org.bukkit.Material;
 import org.bukkit.Sound;
 import org.bukkit.configuration.InvalidConfigurationException;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
-import org.bukkit.inventory.meta.tags.ItemTagType;
+import org.bukkit.persistence.PersistentDataType;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -40,6 +38,7 @@ public class Crate {
     private String name;
     private ItemStack item = null;
     private Sound openSound = null;
+
     private List<Loot> loot = new ArrayList<>();
 
     public Crate(String id, FileConfiguration config) throws InvalidConfigurationException {
@@ -55,22 +54,7 @@ public class Crate {
         }
         name = ChatColor.translateAlternateColorCodes('&', nameStr);
 
-        item = getConfig().getItemStack("item");
-        if (item == null && getConfig().isString("item")) {
-            String[] parts = getConfig().getString("item").split(" ", 2);
-            String matStr = parts[0];
-            Material mat = Material.matchMaterial(matStr);
-            if (mat != null) {
-                item = new ItemStack(mat);
-                if (parts.length == 2) {
-                    Bukkit.getUnsafe().modifyItemStack(item, parts[1]);
-                }
-            } else {
-                throw new InvalidConfigurationException("Invalid material name " + matStr + " in item of crate " + getId() + "!");
-            }
-        } else {
-            throw new InvalidConfigurationException("No item defined for crate " + getId() + "!");
-        }
+        item = SimpleLootCrates.configToItem(getConfig().get("item"));
 
         String soundStr = getConfig().getString("open-sound");
         if (soundStr != null) {
@@ -91,6 +75,17 @@ public class Crate {
         }
     }
 
+    public void saveConfig() {
+        getConfig().set("name", name.replace(ChatColor.COLOR_CHAR, '&'));
+        getConfig().set("item", SimpleLootCrates.itemToConfig(item));
+        getConfig().set("open-sound", openSound.name().toLowerCase());
+        List<Map<String, Object>> lootList = new ArrayList<>();
+        for (Loot l : loot) {
+            lootList.add(l.serialize());
+        }
+        getConfig().set("loot", lootList);
+    }
+
     public String getId() {
         return id;
     }
@@ -101,6 +96,10 @@ public class Crate {
 
     public Sound getOpenSound() {
         return openSound;
+    }
+
+    public List<Loot> getLoot() {
+        return loot;
     }
 
     public FileConfiguration getConfig() {
@@ -116,9 +115,18 @@ public class Crate {
         if (!meta.hasDisplayName()) {
             meta.setDisplayName(getName());
         }
-        meta.getCustomTagContainer().setCustomTag(SimpleLootCrates.ID_KEY, ItemTagType.STRING, getId());
+        meta.getPersistentDataContainer().set(SimpleLootCrates.ID_KEY, PersistentDataType.STRING, getId());
         i.setItemMeta(meta);
         return i;
+    }
+
+    /**
+     * Set the crate's item to a clone of the input item
+     * @param item The item to set the crate item to
+     */
+    public void setItemStack(ItemStack item) {
+        this.item = item.clone();
+        this.item.setAmount(1);
     }
 
     public List<ItemStack> getRandomLoot() {
@@ -127,5 +135,17 @@ public class Crate {
             l.addAll(loot.getRandomItems());
         }
         return l;
+    }
+
+    /**
+     * Get the amount of item stacks that this crate will return
+     * @return The amount of item stacks this crate will return
+     */
+    public int getAmount() {
+        int amount = 0;
+        for (Loot loot : loot) {
+            amount += loot.getAmount();
+        }
+        return amount;
     }
 }

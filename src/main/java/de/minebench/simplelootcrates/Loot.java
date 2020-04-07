@@ -25,11 +25,12 @@ import org.bukkit.inventory.ItemStack;
 
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
 public class Loot {
-    private final int amount;
+    private int amount;
     private final List<ItemStack> items = new ArrayList<>();
 
     public Loot(Map<String, Object> map) throws InvalidConfigurationException {
@@ -69,11 +70,34 @@ public class Loot {
         }
     }
 
+    public Map<String, Object> serialize() {
+        Map<String, Object> map = new LinkedHashMap<>();
+        map.put("amount", amount);
+        List<Object> itemsList = new ArrayList<>();
+        for (ItemStack item : items) {
+            itemsList.add(SimpleLootCrates.itemToConfig(item));
+        }
+        map.put("items", itemsList);
+        return map;
+    }
+
     public Collection<ItemStack> getRandomItems() {
         List<ItemStack> itemStacks = new ArrayList<>();
         for (int i = 0; i < amount; i++) {
             itemStacks.add(items.get(SimpleLootCrates.RANDOM.nextInt(items.size())));
         }
         return itemStacks;
+    }
+
+    public int getAmount() {
+        return amount;
+    }
+
+    public void setAmount(int amount) {
+        this.amount = amount;
+    }
+
+    public List<ItemStack> getItems() {
+        return items;
     }
 }

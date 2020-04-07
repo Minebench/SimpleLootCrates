@@ -24,7 +24,7 @@
 
     <groupId>de.minebench</groupId>
     <artifactId>simplelootcrates</artifactId>
-    <version>1.0-SNAPSHOT</version>
+    <version>1.1-SNAPSHOT</version>
     <packaging>jar</packaging>
 
     <name>SimpleLootCrates</name>
@@ -60,7 +60,7 @@
             </activation>
             <properties>
                 <buildNumber>${env.BUILD_NUMBER}</buildNumber>
-                <buildDescription>(build #${env.BUILD_NUMBER})</buildDescription>
+                <buildDescription>(build ${env.BUILD_NUMBER})</buildDescription>
             </properties>
         </profile>
     </profiles>
@@ -81,12 +81,12 @@
                         </goals>
                         <configuration>
                             <minimizeJar>true</minimizeJar>
-                            <!--<relocations>
+                            <relocations>
                                 <relocation>
                                     <pattern>de.themoep</pattern>
                                     <shadedPattern>de.minebench.simplelootcrates.libs</shadedPattern>
                                 </relocation>
-                            </relocations>-->
+                            </relocations>
                         </configuration>
                     </execution>
                 </executions>
@@ -115,13 +115,13 @@
         <dependency>
             <groupId>org.bukkit</groupId>
             <artifactId>bukkit</artifactId>
-            <version>1.13.2-R0.1-SNAPSHOT</version>
+            <version>1.15.2-R0.1-SNAPSHOT</version>
             <scope>provided</scope>
         </dependency>
         <dependency>
             <groupId>de.themoep</groupId>
             <artifactId>inventorygui</artifactId>
-            <version>1.3-SNAPSHOT</version>
+            <version>1.4.1-SNAPSHOT</version>
             <scope>compile</scope>
         </dependency>
     </dependencies>

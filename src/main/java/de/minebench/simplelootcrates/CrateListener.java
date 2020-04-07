@@ -23,6 +23,7 @@ import de.themoep.inventorygui.GuiStorageElement;
 import de.themoep.inventorygui.InventoryGui;
 import de.themoep.inventorygui.StaticGuiElement;
 import org.bukkit.Bukkit;
+import org.bukkit.ChatColor;
 import org.bukkit.GameMode;
 import org.bukkit.SoundCategory;
 import org.bukkit.event.EventHandler;
@@ -35,6 +36,7 @@ import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.inventory.meta.tags.ItemTagType;
+import org.bukkit.persistence.PersistentDataType;
 
 import java.util.Arrays;
 import java.util.Collection;
@@ -58,12 +60,17 @@ public class CrateListener implements Listener {
         }
 
         ItemMeta meta = event.getItem().getItemMeta();
-        if (meta.getCustomTagContainer().hasCustomTag(SimpleLootCrates.ID_KEY, ItemTagType.STRING)) {
+        if (meta.getPersistentDataContainer().has(SimpleLootCrates.ID_KEY, PersistentDataType.STRING)) {
             event.setCancelled(true);
-            String id = meta.getCustomTagContainer().getCustomTag(SimpleLootCrates.ID_KEY, ItemTagType.STRING);
+            String id = meta.getPersistentDataContainer().get(SimpleLootCrates.ID_KEY, PersistentDataType.STRING);
             Crate crate = plugin.getManager().getCrate(id);
             if (crate != null) {
                 List<ItemStack> loot = crate.getRandomLoot();
+                if (loot.size() > 9 * 6) {
+                    plugin.getLogger().log(Level.SEVERE, "Tried to generate too much loot for crate " + crate.getName() + "! (" + loot.size() + ")");
+                    event.getPlayer().sendMessage(ChatColor.RED + "Tried to generate too much loot for crate " + crate.getName() + "!");
+                    return;
+                }
                 String[] setup;
                 if (loot.size() <= 5) {
                     setup = new String[]{"iiiii"};

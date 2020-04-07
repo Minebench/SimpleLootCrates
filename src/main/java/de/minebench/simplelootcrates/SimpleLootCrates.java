@@ -18,14 +18,25 @@ package de.minebench.simplelootcrates;
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+import com.google.common.collect.ImmutableMap;
+import de.themoep.inventorygui.DynamicGuiElement;
+import de.themoep.inventorygui.GuiElementGroup;
+import de.themoep.inventorygui.GuiPageElement;
+import de.themoep.inventorygui.InventoryGui;
+import de.themoep.inventorygui.StaticGuiElement;
+import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
+import org.bukkit.Material;
 import org.bukkit.NamespacedKey;
 import org.bukkit.Sound;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
 import org.bukkit.configuration.InvalidConfigurationException;
 import org.bukkit.configuration.file.YamlConfiguration;
+import org.bukkit.entity.HumanEntity;
 import org.bukkit.entity.Player;
+import org.bukkit.event.inventory.ClickType;
+import org.bukkit.inventory.ItemStack;
 import org.bukkit.plugin.java.JavaPlugin;
 
 import java.io.File;
@@ -43,8 +54,10 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.SimpleFileVisitor;
 import java.nio.file.attribute.BasicFileAttributes;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.EnumSet;
+import java.util.Map;
 import java.util.Random;
 import java.util.logging.Level;
 
@@ -139,17 +152,42 @@ public final class SimpleLootCrates extends JavaPlugin {
                     sender.sendMessage(ChatColor.RESET + crate.getName() + ChatColor.AQUA + " (" + crate.getId() + ")");
                 }
                 return true;
+            } else if ("gui".equalsIgnoreCase(args[0]) && sender.hasPermission("simplelootcreates.command.gui")) {
+                if (sender instanceof Player) {
+                    InventoryGui gui = new InventoryGui(this,
+                            "Select crate",
+                            new String[]{
+                                    "ccccccccc",
+                                    "ccccccccc",
+                                    "ccccccccc",
+                                    "p       n"
+                            },
+                            new GuiPageElement('p', new ItemStack(Material.ARROW), GuiPageElement.PageAction.PREVIOUS, "Previous"),
+                            new GuiPageElement('n', new ItemStack(Material.ARROW), GuiPageElement.PageAction.NEXT, "Next")
+                    );
+                    GuiElementGroup group = new GuiElementGroup('c');
+                    gui.addElement(group);
+                    for (Crate crate : getManager().getCrates()) {
+                        group.addElement(new StaticGuiElement('c', crate.getItemStack(), click -> {
+                            if (click.getEvent().isLeftClick()) {
+                                giveCrate((Player) click.getEvent().getWhoClicked(), crate);
+                            } else if (click.getEvent().isRightClick()) {
+                                openEditGui((Player) sender, crate);
+                            }
+                            return true;
+                        }, crate.getName(), "Left click to get", "Right click to edit"));
+                    }
+                    gui.show((HumanEntity) sender);
+                } else {
+                    sender.sendMessage(ChatColor.RED + "This is a player command!");
+                }
             }
         } else if (args.length == 2) {
             if ("get".equalsIgnoreCase(args[0]) && sender.hasPermission("simplelootcrates.command.get")) {
                 if (sender instanceof Player) {
                     Crate crate = manager.getCrate(args[1]);
                     if (crate != null) {
-                        if (((Player) sender).getInventory().addItem(crate.getItemStack()).isEmpty()) {
-                            sender.sendMessage(ChatColor.AQUA + "Added crate " + ChatColor.RESET + crate.getName() + ChatColor.AQUA + " to your inventory!");
-                        } else {
-                            sender.sendMessage(ChatColor.RED + "Not enough space in your inventory to add crate!");
-                        }
+                        giveCrate((Player) sender, crate);
                     } else {
                         sender.sendMessage(ChatColor.RED + "No crate with the ID " + args[1] + " found!");
                     }
@@ -164,11 +202,7 @@ public final class SimpleLootCrates extends JavaPlugin {
                 if (target != null) {
                     Crate crate = manager.getCrate(args[2]);
                     if (crate != null) {
-                        if (((Player) sender).getInventory().addItem(crate.getItemStack()).isEmpty()) {
-                            sender.sendMessage(ChatColor.AQUA + "Added crate " + ChatColor.RESET + crate.getName() + ChatColor.AQUA + " to your inventory!");
-                        } else {
-                            sender.sendMessage(ChatColor.RED + "Not enough space in your inventory to add crate!");
-                        }
+                        giveCrate((Player) sender, crate);
                     } else {
                         sender.sendMessage(ChatColor.RED + "No crate with the ID " + args[2] + " found!");
                     }
@@ -181,11 +215,162 @@ public final class SimpleLootCrates extends JavaPlugin {
         return false;
     }
 
+    private void openEditGui(Player player, Crate crate) {
+        InventoryGui gui = new InventoryGui(this, "Edit crate " + crate.getName(), new String[] {
+                "lllllllll",
+                "lllllllla",
+                "p   i   n"
+        }, new StaticGuiElement('i', crate.getItemStack(), click -> {
+            if (click.getEvent().getCursor() != null && (click.getType() == ClickType.LEFT || click.getType() == ClickType.RIGHT)) {
+                crate.setItemStack(click.getEvent().getCursor());
+                crate.saveConfig();
+                return false;
+            }
+            return true;
+        }, "Click to set item"),
+                new GuiPageElement('p', new ItemStack(Material.ARROW), GuiPageElement.PageAction.PREVIOUS, "Previous"),
+                new GuiPageElement('n', new ItemStack(Material.ARROW), GuiPageElement.PageAction.NEXT, "Next"),
+                new StaticGuiElement('a', new ItemStack(Material.SUNFLOWER), click -> {
+                    try {
+                        Loot loot = new Loot(ImmutableMap.of("items", Arrays.asList("dirt")));
+                        crate.getLoot().add(loot);
+                        openEditGui(player, crate, loot);
+                    } catch (InvalidConfigurationException e) {
+                        e.printStackTrace();
+                    }
+                    return true;
+                }, "Add new loot")
+        );
+        gui.setCloseAction(close -> {
+            crate.saveConfig();
+            return true;
+        });
+
+        GuiElementGroup lootGroup = new GuiElementGroup('l');
+        gui.addElement(lootGroup);
+        for (Loot loot : crate.getLoot()) {
+            String[] text = new String[loot.getItems().size()];
+            for (int i = 0; i < loot.getItems().size(); i++) {
+                ItemStack item = loot.getItems().get(i);
+                text[i] = item.getAmount() + "x " + item.getType().name().toLowerCase();
+            }
+            lootGroup.addElement(new StaticGuiElement('l', loot.getItems().get(0), loot.getAmount(), click -> {
+                openEditGui(player, crate, loot);
+                return true;
+            }, text));
+        }
+
+        gui.show(player);
+    }
+
+    private void openEditGui(Player player, Crate crate, Loot loot) {
+        InventoryGui gui = new InventoryGui(this, "Edit loot of " + crate.getName(), new String[] {
+                "iiiiiiiii",
+                "iiiiiiiii",
+                "p   a   n"
+        },
+                new GuiPageElement('p', new ItemStack(Material.ARROW), GuiPageElement.PageAction.PREVIOUS, "Previous"),
+                new GuiPageElement('n', new ItemStack(Material.ARROW), GuiPageElement.PageAction.NEXT, "Next"),
+                new StaticGuiElement('a', new ItemStack(Material.LEVER), loot.getAmount(), click -> {
+                    if (click.getEvent().isLeftClick() || click.getEvent().isRightClick()) {
+                        int amount = loot.getAmount() +
+                                ((click.getEvent().isLeftClick() ? 1 : -1)
+                                        * (click.getEvent().isShiftClick() ? 10 : 1));
+                        if (amount < 1) {
+                            amount = 1;
+                        } else if (amount > 9 * 6 - crate.getAmount()) {
+                            amount = 9 * 6 - crate.getAmount();
+                        }
+                        if (amount != loot.getAmount()) {
+                            loot.setAmount(amount);
+                            ((StaticGuiElement) click.getElement()).setNumber(amount);
+                        }
+                    }
+                    return true;
+                }, "Amount", "Left click +1", "Right click -1", "+Shift = 10")
+        );
+
+        GuiElementGroup itemsGroup = new GuiElementGroup('i');
+        gui.addElement(itemsGroup);
+        for (int i = 0; i < 9*10; i++) {
+            int finalI = i;
+            itemsGroup.addElement(new DynamicGuiElement('i', () -> {
+                ItemStack item = null;
+                if (finalI < loot.getItems().size()) {
+                    item = loot.getItems().get(finalI);
+                }
+                return new StaticGuiElement('i', item, click -> {
+                    if (click.getEvent().getCursor() != null && (click.getType() == ClickType.LEFT || click.getType() == ClickType.RIGHT)) {
+                        if (finalI < loot.getItems().size()) {
+                            loot.getItems().set(finalI, click.getEvent().getCursor().clone());
+                        } else {
+                            loot.getItems().add(click.getEvent().getCursor().clone());
+                            gui.build();
+                        }
+                        return false;
+                    } else if (loot.getItems().size() > 1 && click.getType() == ClickType.MIDDLE || click.getType() == ClickType.LEFT) {
+                        loot.getItems().remove(finalI);
+                        gui.build();
+                        return click.getType() == ClickType.MIDDLE;
+                    }
+                    return true;
+                }, "Click to edit", "Middle click to remove");
+            }));
+        }
+
+        gui.show(player);
+    }
+
+    private void giveCrate(Player player, Crate crate) {
+        if (player.getInventory().addItem(crate.getItemStack()).isEmpty()) {
+            player.sendMessage(ChatColor.AQUA + "Added crate " + ChatColor.RESET + crate.getName() + ChatColor.AQUA + " to your inventory!");
+        } else {
+            player.sendMessage(ChatColor.RED + "Not enough space in your inventory to add crate!");
+        }
+    }
+
     public CrateManager getManager() {
         return manager;
     }
 
     public Sound getDefaultOpenSound() {
         return defaultOpenSound;
+    }
+
+    /**
+     * Convert an item to a simple config string if possible
+     * @param item The item
+     * @return The config string or the item itself to be set in the config directly
+     */
+    public static Object itemToConfig(ItemStack item) {
+        if (item.hasItemMeta()) {
+            return item;
+        } else if (item.getAmount() > 0) {
+            return item.getAmount() + " " + item.getType().name().toLowerCase();
+        }
+        return item.getType().name().toLowerCase();
+    }
+
+    public static ItemStack configToItem(Object item) throws InvalidConfigurationException {
+        if (item instanceof ItemStack) {
+            return (ItemStack) item;
+        } else if (item instanceof Map) {
+            return ItemStack.deserialize((Map<String, Object>) item);
+        } else if (item instanceof String) {
+            String[] parts = ((String) item).split(" ", 2);
+            String matStr = parts[0];
+            Material mat = Material.matchMaterial(matStr);
+            if (mat != null) {
+                ItemStack itemStack = new ItemStack(mat);
+                if (parts.length == 2) {
+                    Bukkit.getUnsafe().modifyItemStack(itemStack, parts[1]);
+                }
+                return itemStack;
+            } else {
+                throw new InvalidConfigurationException("Invalid material name " + matStr + "!");
+            }
+        } else {
+            throw new InvalidConfigurationException("Not a valid item! " + item);
+        }
     }
 }
