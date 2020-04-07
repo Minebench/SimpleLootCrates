@@ -19,13 +19,17 @@ package de.minebench.simplelootcrates;
  */
 
 import org.bukkit.ChatColor;
+import org.bukkit.Material;
 import org.bukkit.Sound;
 import org.bukkit.configuration.InvalidConfigurationException;
 import org.bukkit.configuration.file.FileConfiguration;
+import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.persistence.PersistentDataType;
 
+import java.io.File;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -40,6 +44,13 @@ public class Crate {
     private Sound openSound = null;
 
     private List<Loot> loot = new ArrayList<>();
+
+    public Crate(String id, String name) {
+        this.id = id;
+        this.name = name;
+        this.item = new ItemStack(Material.CHEST);
+        this.config = new YamlConfiguration();
+    }
 
     public Crate(String id, FileConfiguration config) throws InvalidConfigurationException {
         this.id = id;
@@ -75,15 +86,20 @@ public class Crate {
         }
     }
 
-    public void saveConfig() {
+    public void saveConfig(File folder) {
         getConfig().set("name", name.replace(ChatColor.COLOR_CHAR, '&'));
         getConfig().set("item", SimpleLootCrates.itemToConfig(item));
-        getConfig().set("open-sound", openSound.name().toLowerCase());
+        getConfig().set("open-sound", openSound != null ? openSound.name().toLowerCase() : null);
         List<Map<String, Object>> lootList = new ArrayList<>();
         for (Loot l : loot) {
             lootList.add(l.serialize());
         }
         getConfig().set("loot", lootList);
+        try {
+            getConfig().save(new File(folder, id + ".yml"));
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
     }
 
     public String getId() {

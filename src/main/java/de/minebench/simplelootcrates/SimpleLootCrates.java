@@ -18,7 +18,6 @@ package de.minebench.simplelootcrates;
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-import com.google.common.collect.ImmutableMap;
 import de.themoep.inventorygui.DynamicGuiElement;
 import de.themoep.inventorygui.GuiElementGroup;
 import de.themoep.inventorygui.GuiPageElement;
@@ -60,6 +59,7 @@ import java.util.EnumSet;
 import java.util.Map;
 import java.util.Random;
 import java.util.logging.Level;
+import java.util.stream.Collectors;
 
 public final class SimpleLootCrates extends JavaPlugin {
 
@@ -158,8 +158,7 @@ public final class SimpleLootCrates extends JavaPlugin {
                             "Select crate",
                             new String[]{
                                     "ccccccccc",
-                                    "ccccccccc",
-                                    "ccccccccc",
+                                    "cccccccca",
                                     "p       n"
                             },
                             new GuiPageElement('p', new ItemStack(Material.ARROW), GuiPageElement.PageAction.PREVIOUS, "Previous"),
@@ -210,6 +209,11 @@ public final class SimpleLootCrates extends JavaPlugin {
                     sender.sendMessage(ChatColor.RED + "No player with the name " + args[1] + " found!");
                 }
                 return true;
+            } else if ("add".equalsIgnoreCase(args[0]) && sender.hasPermission("simplelootcrates.command.add")) {
+                Crate crate = new Crate(args[1].toLowerCase(), Arrays.stream(args).skip(2).collect(Collectors.joining(" ")));
+                getManager().addCrate(crate);
+                openEditGui((Player) sender, crate);
+                return true;
             }
         }
         return false;
@@ -223,7 +227,7 @@ public final class SimpleLootCrates extends JavaPlugin {
         }, new StaticGuiElement('i', crate.getItemStack(), click -> {
             if (click.getEvent().getCursor() != null && (click.getType() == ClickType.LEFT || click.getType() == ClickType.RIGHT)) {
                 crate.setItemStack(click.getEvent().getCursor());
-                crate.saveConfig();
+                crate.saveConfig(cratesFolder);
                 return false;
             }
             return true;
@@ -231,33 +235,37 @@ public final class SimpleLootCrates extends JavaPlugin {
                 new GuiPageElement('p', new ItemStack(Material.ARROW), GuiPageElement.PageAction.PREVIOUS, "Previous"),
                 new GuiPageElement('n', new ItemStack(Material.ARROW), GuiPageElement.PageAction.NEXT, "Next"),
                 new StaticGuiElement('a', new ItemStack(Material.SUNFLOWER), click -> {
-                    try {
-                        Loot loot = new Loot(ImmutableMap.of("items", Arrays.asList("dirt")));
-                        crate.getLoot().add(loot);
-                        openEditGui(player, crate, loot);
-                    } catch (InvalidConfigurationException e) {
-                        e.printStackTrace();
-                    }
+                    Loot loot = new Loot();
+                    crate.getLoot().add(loot);
+                    openEditGui(player, crate, loot);
                     return true;
                 }, "Add new loot")
         );
         gui.setCloseAction(close -> {
-            crate.saveConfig();
+            crate.saveConfig(cratesFolder);
             return true;
         });
 
         GuiElementGroup lootGroup = new GuiElementGroup('l');
         gui.addElement(lootGroup);
-        for (Loot loot : crate.getLoot()) {
-            String[] text = new String[loot.getItems().size()];
-            for (int i = 0; i < loot.getItems().size(); i++) {
-                ItemStack item = loot.getItems().get(i);
-                text[i] = item.getAmount() + "x " + item.getType().name().toLowerCase();
-            }
-            lootGroup.addElement(new StaticGuiElement('l', loot.getItems().get(0), loot.getAmount(), click -> {
-                openEditGui(player, crate, loot);
-                return true;
-            }, text));
+        for (int i = 0; i < lootGroup.getSlots().length; i++) {
+            int finalI = i;
+            lootGroup.addElement(new DynamicGuiElement('l', () -> {
+                if (crate.getLoot().size() <= finalI) {
+                    return new StaticGuiElement('l', null);
+                }
+                Loot loot = crate.getLoot().get(finalI);
+                String[] text = new String[loot.getItems().size() + 1];
+                text[0] = "Possible items:";
+                for (int j = 0; j < loot.getItems().size(); j++) {
+                    ItemStack item = loot.getItems().get(j);
+                    text[j] = item.getAmount() + "x " + item.getType().name().toLowerCase();
+                }
+                return new StaticGuiElement('l', loot.getItems().get(0), loot.getAmount(), click -> {
+                    openEditGui(player, crate, loot);
+                    return true;
+                }, text);
+            }));
         }
 
         gui.show(player);
@@ -285,6 +293,7 @@ public final class SimpleLootCrates extends JavaPlugin {
                             loot.setAmount(amount);
                             ((StaticGuiElement) click.getElement()).setNumber(amount);
                         }
+                        click.getGui().build();
                     }
                     return true;
                 }, "Amount", "Left click +1", "Right click -1", "+Shift = 10")
@@ -292,7 +301,7 @@ public final class SimpleLootCrates extends JavaPlugin {
 
         GuiElementGroup itemsGroup = new GuiElementGroup('i');
         gui.addElement(itemsGroup);
-        for (int i = 0; i < 9*10; i++) {
+        for (int i = 0; i < 9 * 6 - crate.getAmount(); i++) {
             int finalI = i;
             itemsGroup.addElement(new DynamicGuiElement('i', () -> {
                 ItemStack item = null;
@@ -305,12 +314,12 @@ public final class SimpleLootCrates extends JavaPlugin {
                             loot.getItems().set(finalI, click.getEvent().getCursor().clone());
                         } else {
                             loot.getItems().add(click.getEvent().getCursor().clone());
-                            gui.build();
+                            click.getGui().build();
                         }
                         return false;
                     } else if (loot.getItems().size() > 1 && click.getType() == ClickType.MIDDLE || click.getType() == ClickType.LEFT) {
                         loot.getItems().remove(finalI);
-                        gui.build();
+                        click.getGui().build();
                         return click.getType() == ClickType.MIDDLE;
                     }
                     return true;

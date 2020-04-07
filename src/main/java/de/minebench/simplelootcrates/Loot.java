@@ -25,6 +25,7 @@ import org.bukkit.inventory.ItemStack;
 
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -32,6 +33,14 @@ import java.util.Map;
 public class Loot {
     private int amount;
     private final List<ItemStack> items = new ArrayList<>();
+
+    public Loot(ItemStack... items) {
+        amount = 1;
+        Collections.addAll(this.items, items);
+        if (this.items.isEmpty()) {
+            this.items.add(new ItemStack(Material.DIRT));
+        }
+    }
 
     public Loot(Map<String, Object> map) throws InvalidConfigurationException {
         Object itemsObject = map.get("items");
