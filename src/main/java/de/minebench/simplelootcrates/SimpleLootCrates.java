@@ -195,6 +195,11 @@ public final class SimpleLootCrates extends JavaPlugin {
                 }
                 return true;
             }
+        } else if (args.length > 2 && "add".equalsIgnoreCase(args[0]) && sender.hasPermission("simplelootcrates.command.add")) {
+            Crate crate = new Crate(args[1].toLowerCase(), Arrays.stream(args).skip(2).collect(Collectors.joining(" ")));
+            getManager().addCrate(crate);
+            openEditGui((Player) sender, crate);
+            return true;
         } else if (args.length > 3) {
             if ("give".equalsIgnoreCase(args[0]) && sender.hasPermission("simplelootcrates.command.give")) {
                 Player target = getServer().getPlayer(args[1]);
@@ -208,11 +213,6 @@ public final class SimpleLootCrates extends JavaPlugin {
                 } else {
                     sender.sendMessage(ChatColor.RED + "No player with the name " + args[1] + " found!");
                 }
-                return true;
-            } else if ("add".equalsIgnoreCase(args[0]) && sender.hasPermission("simplelootcrates.command.add")) {
-                Crate crate = new Crate(args[1].toLowerCase(), Arrays.stream(args).skip(2).collect(Collectors.joining(" ")));
-                getManager().addCrate(crate);
-                openEditGui((Player) sender, crate);
                 return true;
             }
         }
