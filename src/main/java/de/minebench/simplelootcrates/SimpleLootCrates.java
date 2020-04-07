@@ -259,7 +259,7 @@ public final class SimpleLootCrates extends JavaPlugin {
                 text[0] = "Possible items:";
                 for (int j = 0; j < loot.getItems().size(); j++) {
                     ItemStack item = loot.getItems().get(j);
-                    text[j] = item.getAmount() + "x " + item.getType().name().toLowerCase();
+                    text[j + 1] = item.getAmount() + "x " + item.getType().name().toLowerCase();
                 }
                 return new StaticGuiElement('l', loot.getItems().get(0), loot.getAmount(), click -> {
                     openEditGui(player, crate, loot);
@@ -279,7 +279,7 @@ public final class SimpleLootCrates extends JavaPlugin {
         },
                 new GuiPageElement('p', new ItemStack(Material.ARROW), GuiPageElement.PageAction.PREVIOUS, "Previous"),
                 new GuiPageElement('n', new ItemStack(Material.ARROW), GuiPageElement.PageAction.NEXT, "Next"),
-                new StaticGuiElement('a', new ItemStack(Material.LEVER), loot.getAmount(), click -> {
+                new DynamicGuiElement('a', () -> new StaticGuiElement('a', new ItemStack(Material.LEVER), loot.getAmount(), click -> {
                     if (click.getEvent().isLeftClick() || click.getEvent().isRightClick()) {
                         int amount = loot.getAmount() +
                                 ((click.getEvent().isLeftClick() ? 1 : -1)
@@ -296,7 +296,7 @@ public final class SimpleLootCrates extends JavaPlugin {
                         click.getGui().build();
                     }
                     return true;
-                }, "Amount", "Left click +1", "Right click -1", "+Shift = 10")
+                }, "Amount", "Left click +1", "Right click -1", "+Shift = 10"))
         );
 
         GuiElementGroup itemsGroup = new GuiElementGroup('i');
