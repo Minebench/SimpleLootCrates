@@ -291,9 +291,8 @@ public final class SimpleLootCrates extends JavaPlugin {
                         }
                         if (amount != loot.getAmount()) {
                             loot.setAmount(amount);
-                            ((StaticGuiElement) click.getElement()).setNumber(amount);
+                            click.getGui().build();
                         }
-                        click.getGui().build();
                     }
                     return true;
                 }, "Amount", "Left click +1", "Right click -1", "+Shift = 10"))
@@ -309,7 +308,8 @@ public final class SimpleLootCrates extends JavaPlugin {
                     item = loot.getItems().get(finalI);
                 }
                 return new StaticGuiElement('i', item, click -> {
-                    if (click.getEvent().getCursor() != null && (click.getType() == ClickType.LEFT || click.getType() == ClickType.RIGHT)) {
+                    if (click.getEvent().getCursor() != null && !click.getEvent().getCursor().getType().isAir()
+                            && (click.getType() == ClickType.LEFT || click.getType() == ClickType.RIGHT)) {
                         if (finalI < loot.getItems().size()) {
                             loot.getItems().set(finalI, click.getEvent().getCursor().clone());
                         } else {
