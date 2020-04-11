@@ -73,8 +73,12 @@ public class Loot {
                 } else {
                     throw new InvalidConfigurationException("Invalid material name " + matStr + " in " + o + "!");
                 }
+            } else if (o instanceof ItemStack) {
+                items.add((ItemStack) o);
             } else if (o instanceof Map) {
                 items.add(ItemStack.deserialize((Map<String, Object>) o));
+            } else {
+                throw new InvalidConfigurationException("Could not load item " + o + "!");
             }
         }
     }
