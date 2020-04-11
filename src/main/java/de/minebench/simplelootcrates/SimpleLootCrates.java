@@ -323,7 +323,7 @@ public final class SimpleLootCrates extends JavaPlugin {
                         return click.getType() == ClickType.MIDDLE;
                     }
                     return true;
-                }, "Click to edit", "Middle click to remove");
+                });
             }));
         }
 
