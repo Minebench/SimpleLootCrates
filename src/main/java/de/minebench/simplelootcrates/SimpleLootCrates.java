@@ -261,7 +261,7 @@ public final class SimpleLootCrates extends JavaPlugin {
                     ItemStack item = loot.getItems().get(j);
                     text[j + 1] = item.getAmount() + "x " + item.getType().name().toLowerCase();
                 }
-                return new StaticGuiElement('l', loot.getItems().get(0), loot.getAmount(), click -> {
+                return new StaticGuiElement('l', loot.getItems().isEmpty() ? new ItemStack(Material.DIRT) : loot.getItems().get(0), loot.getAmount(), click -> {
                     openEditGui(player, crate, loot);
                     return true;
                 }, text);
