@@ -152,7 +152,7 @@ public final class SimpleLootCrates extends JavaPlugin {
                     sender.sendMessage(ChatColor.RESET + crate.getName() + ChatColor.AQUA + " (" + crate.getId() + ")");
                 }
                 return true;
-            } else if ("gui".equalsIgnoreCase(args[0]) && sender.hasPermission("simplelootcreates.command.gui")) {
+            } else if ("gui".equalsIgnoreCase(args[0]) && sender.hasPermission("simplelootcrates.command.gui")) {
                 if (sender instanceof Player) {
                     InventoryGui gui = new InventoryGui(this,
                             "Select crate",

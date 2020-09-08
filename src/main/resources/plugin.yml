@@ -14,5 +14,5 @@ commands:
       - lootcrate
       - lootcrates
     description: Main plugin command
-    usage: /<command> reload
+    usage: /<command> gui|add|list|get|give|reload
     permission: simplelootcrates.command
