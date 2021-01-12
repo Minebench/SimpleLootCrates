@@ -158,7 +158,7 @@ public final class SimpleLootCrates extends JavaPlugin {
                             "Select crate",
                             new String[]{
                                     "ccccccccc",
-                                    "cccccccca",
+                                    "ccccccccc",
                                     "p       n"
                             },
                             new GuiPageElement('p', new ItemStack(Material.ARROW), GuiPageElement.PageAction.PREVIOUS, "Previous"),
@@ -180,6 +180,7 @@ public final class SimpleLootCrates extends JavaPlugin {
                 } else {
                     sender.sendMessage(ChatColor.RED + "This is a player command!");
                 }
+                return true;
             }
         } else if (args.length == 2) {
             if ("get".equalsIgnoreCase(args[0]) && sender.hasPermission("simplelootcrates.command.get")) {
@@ -196,9 +197,13 @@ public final class SimpleLootCrates extends JavaPlugin {
                 return true;
             }
         } else if (args.length > 2 && "add".equalsIgnoreCase(args[0]) && sender.hasPermission("simplelootcrates.command.add")) {
-            Crate crate = new Crate(args[1].toLowerCase(), Arrays.stream(args).skip(2).collect(Collectors.joining(" ")));
-            getManager().addCrate(crate);
-            openEditGui((Player) sender, crate);
+            if (getManager().getCrate(args[1]) == null) {
+                Crate crate = new Crate(args[1].toLowerCase(), Arrays.stream(args).skip(2).collect(Collectors.joining(" ")));
+                getManager().addCrate(crate);
+                openEditGui((Player) sender, crate);
+            } else {
+                sender.sendMessage(ChatColor.RED + "There already is a crate with the ID " + args[2] + "!");
+            }
             return true;
         } else if (args.length > 3) {
             if ("give".equalsIgnoreCase(args[0]) && sender.hasPermission("simplelootcrates.command.give")) {
@@ -246,27 +251,24 @@ public final class SimpleLootCrates extends JavaPlugin {
             return true;
         });
 
-        GuiElementGroup lootGroup = new GuiElementGroup('l');
-        gui.addElement(lootGroup);
-        for (int i = 0; i < lootGroup.getSlots().length; i++) {
-            int finalI = i;
-            lootGroup.addElement(new DynamicGuiElement('l', () -> {
-                if (crate.getLoot().size() <= finalI) {
-                    return new StaticGuiElement('l', null);
-                }
-                Loot loot = crate.getLoot().get(finalI);
-                String[] text = new String[loot.getItems().size() + 1];
-                text[0] = "Possible items:";
-                for (int j = 0; j < loot.getItems().size(); j++) {
-                    ItemStack item = loot.getItems().get(j);
-                    text[j + 1] = item.getAmount() + "x " + item.getType().name().toLowerCase();
-                }
-                return new StaticGuiElement('l', loot.getItems().isEmpty() ? new ItemStack(Material.DIRT) : loot.getItems().get(0), loot.getAmount(), click -> {
-                    openEditGui(player, crate, loot);
-                    return true;
-                }, text);
-            }));
-        }
+        gui.addElement(new DynamicGuiElement('l', who -> {
+            GuiElementGroup lootGroup = new GuiElementGroup('l');
+            for (Loot loot : crate.getLoot()) {
+                lootGroup.addElement(new DynamicGuiElement('l', () -> {
+                    String[] text = new String[loot.getItems().size() + 1];
+                    text[0] = "Possible items:";
+                    for (int j = 0; j < loot.getItems().size(); j++) {
+                        ItemStack item = loot.getItems().get(j);
+                        text[j + 1] = item.getAmount() + "x " + item.getType().name().toLowerCase();
+                    }
+                    return new StaticGuiElement('l', loot.getItems().isEmpty() ? new ItemStack(Material.DIRT) : loot.getItems().get(0), loot.getAmount(), click -> {
+                        openEditGui(player, crate, loot);
+                        return true;
+                    }, text);
+                }));
+            }
+            return lootGroup;
+        }));
 
         gui.show(player);
     }
@@ -367,10 +369,20 @@ public final class SimpleLootCrates extends JavaPlugin {
             return ItemStack.deserialize((Map<String, Object>) item);
         } else if (item instanceof String) {
             String[] parts = ((String) item).split(" ", 2);
+            int amount = 1;
+            try {
+                amount = Integer.parseInt(parts[0]);
+                if (parts.length > 1) {
+                    parts = parts[1].split(" ", 2);
+                } else {
+                    throw new InvalidConfigurationException("Invalid item config " + item + "!");
+                }
+            } catch (NumberFormatException ignored) {}
+
             String matStr = parts[0];
             Material mat = Material.matchMaterial(matStr);
             if (mat != null) {
-                ItemStack itemStack = new ItemStack(mat);
+                ItemStack itemStack = new ItemStack(mat, amount);
                 if (parts.length == 2) {
                     Bukkit.getUnsafe().modifyItemStack(itemStack, parts[1]);
                 }
