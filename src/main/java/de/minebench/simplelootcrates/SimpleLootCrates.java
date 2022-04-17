@@ -53,9 +53,12 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.SimpleFileVisitor;
 import java.nio.file.attribute.BasicFileAttributes;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.EnumSet;
+import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Random;
 import java.util.logging.Level;
@@ -255,22 +258,30 @@ public final class SimpleLootCrates extends JavaPlugin {
             GuiElementGroup lootGroup = new GuiElementGroup('l');
             for (Loot loot : crate.getLoot()) {
                 lootGroup.addElement(new DynamicGuiElement('l', () -> {
-                    String[] text = new String[loot.getItems().size() + 1];
-                    text[0] = "Possible items:";
-                    for (int j = 0; j < loot.getItems().size(); j++) {
-                        ItemStack item = loot.getItems().get(j);
-                        text[j + 1] = item.getAmount() + "x " + item.getType().name().toLowerCase();
+                    List<String> text = new ArrayList<>();
+                    text.add("Possible items:");
+                    Map<String, Integer> items = new LinkedHashMap<>();
+                    for (ItemStack item : loot.getItems()) {
+                        String name = item.getAmount() + "x " + item.getType().name().toLowerCase();
+                        items.put(name, items.getOrDefault(name, 0) + 1);
+                    }
+                    for (Map.Entry<String, Integer> entry : items.entrySet()) {
+                        text.add(getPercent(entry.getValue(), items.size()) + "% " + entry.getKey());
                     }
                     return new StaticGuiElement('l', loot.getItems().isEmpty() ? new ItemStack(Material.DIRT) : loot.getItems().get(0), loot.getAmount(), click -> {
                         openEditGui(player, crate, loot);
                         return true;
-                    }, text);
+                    }, text.toArray(new String[0]));
                 }));
             }
             return lootGroup;
         }));
 
         gui.show(player);
+    }
+
+    private String getPercent(int amount, int total) {
+        return String.format("%,.2f", amount / (double) total * 100);
     }
 
     private void openEditGui(Player player, Crate crate, Loot loot) {
