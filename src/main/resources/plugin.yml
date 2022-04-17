@@ -3,7 +3,7 @@ version: ${minecraft.plugin.version}
 main: de.minebench.simplelootcrates.SimpleLootCrates
 api-version: 1.13
 authors: [Phoenix616]
-description: A simple loot create plugin
+description: A simple loot crate plugin
 commands:
   simplelootcrates:
     aliases:
