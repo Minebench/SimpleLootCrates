@@ -36,6 +36,7 @@ import org.bukkit.entity.HumanEntity;
 import org.bukkit.entity.Player;
 import org.bukkit.event.inventory.ClickType;
 import org.bukkit.inventory.ItemStack;
+import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.plugin.java.JavaPlugin;
 
 import java.io.File;
@@ -262,8 +263,15 @@ public final class SimpleLootCrates extends JavaPlugin {
                     text.add("Possible items:");
                     Map<String, Integer> items = new LinkedHashMap<>();
                     for (ItemStack item : loot.getItems()) {
-                        String name = item.getAmount() + "x " + item.getType().name().toLowerCase();
-                        items.put(name, items.getOrDefault(name, 0) + 1);
+                        StringBuilder name = new StringBuilder().append(ChatColor.DARK_GRAY).append(item.getAmount()).append("x ");
+                        if (item.hasItemMeta()) {
+                            ItemMeta meta = item.getItemMeta();
+                            if (meta.hasDisplayName()) {
+                                name.append(meta.getDisplayName()).append(" ");
+                            }
+                        }
+                        name.append(ChatColor.GRAY).append(item.getType().name().toLowerCase());
+                        items.put(name.toString(), items.getOrDefault(name.toString(), 0) + 1);
                     }
                     for (Map.Entry<String, Integer> entry : items.entrySet()) {
                         text.add(getPercent(entry.getValue(), items.size()) + "% " + entry.getKey());
