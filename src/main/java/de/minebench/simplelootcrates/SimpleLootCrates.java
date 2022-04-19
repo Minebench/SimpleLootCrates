@@ -54,11 +54,12 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.SimpleFileVisitor;
 import java.nio.file.attribute.BasicFileAttributes;
+import java.util.AbstractMap;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.EnumSet;
-import java.util.LinkedHashMap;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
@@ -261,21 +262,22 @@ public final class SimpleLootCrates extends JavaPlugin {
                 lootGroup.addElement(new DynamicGuiElement('l', () -> {
                     List<String> text = new ArrayList<>();
                     text.add("Possible items:");
-                    Map<String, Integer> items = new LinkedHashMap<>();
+                    Map<String, Integer> items = new HashMap<>();
                     for (ItemStack item : loot.getItems()) {
                         StringBuilder name = new StringBuilder().append(ChatColor.DARK_GRAY).append(item.getAmount()).append("x ");
                         if (item.hasItemMeta()) {
                             ItemMeta meta = item.getItemMeta();
                             if (meta.hasDisplayName()) {
-                                name.append(meta.getDisplayName()).append(" ");
+                                name.append(ChatColor.WHITE).append(ChatColor.ITALIC).append(meta.getDisplayName()).append(" ");
                             }
                         }
                         name.append(ChatColor.GRAY).append(item.getType().name().toLowerCase());
                         items.put(name.toString(), items.getOrDefault(name.toString(), 0) + 1);
                     }
-                    for (Map.Entry<String, Integer> entry : items.entrySet()) {
-                        text.add(getPercent(entry.getValue(), items.size()) + "% " + entry.getKey());
-                    }
+                    items.entrySet().stream()
+                            .map(e -> new AbstractMap.SimpleEntry<>(getPercent(e.getValue(), items.size()), e.getKey()))
+                            .sorted((o1, o2) -> o2.getKey().compareTo(o1.getKey()))
+                            .forEachOrdered(e -> text.add(String.format("%,.2f%% %s", e.getKey(), e.getValue())));
                     return new StaticGuiElement('l', loot.getItems().isEmpty() ? new ItemStack(Material.DIRT) : loot.getItems().get(0), loot.getAmount(), click -> {
                         openEditGui(player, crate, loot);
                         return true;
@@ -288,8 +290,8 @@ public final class SimpleLootCrates extends JavaPlugin {
         gui.show(player);
     }
 
-    private String getPercent(int amount, int total) {
-        return String.format("%,.2f", amount / (double) total * 100);
+    private double getPercent(int amount, int total) {
+        return amount / (double) total * 100;
     }
 
     private void openEditGui(Player player, Crate crate, Loot loot) {
