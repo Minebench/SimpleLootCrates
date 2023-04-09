@@ -77,7 +77,7 @@ public class CrateListener implements Listener {
                 }
                 Inventory backingInventory = Bukkit.createInventory(null, (loot.size() / 9 + 1) * 9);
                 for (int i = 0; i < loot.size(); i++) {
-                    backingInventory.setItem(i, loot.get(i));
+                    backingInventory.setItem(i, plugin.processLootItem(event.getPlayer(), loot.get(i)));
                 }
                 InventoryGui gui = new InventoryGui(plugin, crate.getName(), setup, new GuiStorageElement('i', backingInventory));
                 gui.setCloseAction(close -> {
